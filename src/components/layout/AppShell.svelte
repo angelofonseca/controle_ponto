@@ -43,6 +43,7 @@
 			{:else}
 				<a href={resolve('/colaborador/registro')}>Registrar Ponto</a>
 				<a href={resolve('/colaborador/historico')}>Histórico</a>
+				<a href={resolve('/colaborador/justificativas')}>Justificativas</a>
 			{/if}
 		</nav>
 
