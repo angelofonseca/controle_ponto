@@ -12,6 +12,9 @@ export interface Justificativa {
 	data: string;
 	motivo: string;
 	anexoUrl: string | null;
+	status: 'pending' | 'approved' | 'rejected';
+	approvedBy?: string;
+	approvedAt?: string;
 }
 
 export interface JustificativaInput {
@@ -24,5 +27,12 @@ export interface JustificativaInput {
 export const justificativaService = {
 	list: () => get<Justificativa[]>('/justificativas'),
 	create: (data: JustificativaInput) => post<Justificativa>('/justificativas', data),
-	remove: (id: string) => del<void>(`/justificativas/${id}`)
+	remove: (id: string) => del<void>(`/justificativas/${id}`),
+	approve: (id: string) => post<Justificativa>(`/justificativas/${id}/approve`, {}),
+	reject: (id: string) => post<Justificativa>(`/justificativas/${id}/reject`, {}),
+
+	listMy: () => get<Justificativa[]>('/justificativas/me'),
+	createMy: (data: Omit<JustificativaInput, 'colaboradorId'>) =>
+		post<Justificativa>('/justificativas/me', data),
+	removeMy: (id: string) => del<void>(`/justificativas/me/${id}`)
 };

@@ -23,7 +23,10 @@ export const GET: RequestHandler = async ({ request }) => {
 			colaboradorNome: j.colaborador.name,
 			data: j.data.toISOString(),
 			motivo: j.motivo,
-			anexoUrl: j.anexoUrl
+			anexoUrl: j.anexoUrl,
+			status: j.status,
+			approvedBy: j.approvedBy,
+			approvedAt: j.approvedAt?.toISOString()
 		}))
 	);
 };
@@ -58,7 +61,10 @@ export const POST: RequestHandler = async ({ request }) => {
 			colaboradorId: body.colaboradorId,
 			data: new Date(body.data),
 			motivo: body.motivo,
-			anexoUrl: body.anexoUrl ?? null
+			anexoUrl: body.anexoUrl ?? null,
+			status: 'approved',
+			approvedBy: admin.id,
+			approvedAt: new Date()
 		}
 	});
 
