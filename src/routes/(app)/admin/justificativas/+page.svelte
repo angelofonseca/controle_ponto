@@ -7,20 +7,15 @@
 	import { justificativaService, type Justificativa } from '@/services/justificativa.service';
 	import { colaboradorService } from '@/services/colaborador.service';
 	import type { Colaborador } from '@/types/colaborador';
+	import Button from '@/components/ui/Button.svelte';
+	import Card from '@/components/ui/Card.svelte';
+	import ApprovalCard from '@/components/ApprovalCard.svelte';
 
 	let lista = $state<Justificativa[]>([]);
 	let colaboradores = $state<Colaborador[]>([]);
 	let errorMsg = $state('');
-	let form = $state({
-		colaboradorId: '',
-		data: '',
-		motivo: '',
-		anexoUrl: '',
-		fotoFile: null as File | null
-	});
-	let loading = $state(false);
-	let fileInput: HTMLInputElement | undefined;
-	let previewUrl = $state<string | null>(null);
+	let openId = $state<string | null>(null);
+	let form = $state({ colaboradorId: '', data: '', motivo: '', anexoUrl: '' });
 
 	async function carregar() {
 		try {
@@ -98,41 +93,20 @@
 	async function remover(id: string) {
 		if (!confirm('Remover esta justificativa?')) return;
 		await justificativaService.remove(id);
+		openId = null;
 		await carregar();
 	}
 
-	async function aprovar(id: string) {
-		try {
-			await justificativaService.approve(id);
-			await carregar();
-		} catch {
-			errorMsg = 'Erro ao aprovar justificativa.';
-		}
+	function fmtCurta(iso: string): string {
+		return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 	}
 
-	async function rejeitar(id: string) {
-		try {
-			await justificativaService.reject(id);
-			await carregar();
-		} catch {
-			errorMsg = 'Erro ao rejeitar justificativa.';
-		}
-	}
-
-	function fmt(iso: string) {
-		return new Date(iso).toLocaleDateString('pt-BR');
-	}
-
-	function abrirAnexo(url: string) {
-		previewUrl = url;
-	}
-
-	function fecharPreview() {
-		previewUrl = null;
-	}
-
-	function fmt(iso: string) {
-		return new Date(iso).toLocaleDateString('pt-BR');
+	function fmtLonga(iso: string): string {
+		return new Date(iso).toLocaleDateString('pt-BR', {
+			weekday: 'long',
+			day: '2-digit',
+			month: 'long'
+		});
 	}
 
 	onMount(carregar);
@@ -145,127 +119,75 @@
 
 	{#if errorMsg}<div class="error">{errorMsg}</div>{/if}
 
-	<form class="card form" onsubmit={criar}>
+	<Card>
 		<h2>Nova justificativa</h2>
-		<label>
-			Colaborador
-			<select bind:value={form.colaboradorId} required>
-				<option value="">Selecione…</option>
-				{#each colaboradores as c (c.id)}
-					<option value={c.id}>{c.nome}</option>
-				{/each}
-			</select>
-		</label>
-		<label>
-			Data da falta
-			<input type="date" bind:value={form.data} required disabled={loading} />
-		</label>
-		<label>
-			Motivo
-			<textarea
-				bind:value={form.motivo}
-				required
-				disabled={loading}
-				placeholder="Descreva o motivo da falta..."
-			></textarea>
-		</label>
-		<label>
-			URL do anexo (opcional)
-			<input
-				type="url"
-				bind:value={form.anexoUrl}
-				disabled={loading}
-				placeholder="https://exemplo.com/anexo"
-			/>
-		</label>
-		<label>
-			Adicionar foto (opcional)
-			<input
-				type="file"
-				accept="image/*"
-				onchange={handleFileChange}
-				disabled={loading}
-				bind:this={fileInput}
-			/>
-			{#if form.fotoFile}
-				<small class="text-success">Foto selecionada: {form.fotoFile.name}</small>
-			{/if}
-		</label>
-		<button class="btn" type="submit" disabled={loading}
-			>{loading ? 'Enviando...' : 'Cadastrar'}</button
-		>
-	</form>
-
-	{#if lista.some((j) => j.status === 'pending')}
-		<div class="card">
-			<h2>Justificativas Pendentes</h2>
-			<table>
-				<thead>
-					<tr><th>Colaborador</th><th>Data</th><th>Motivo</th><th>Anexo</th><th></th></tr>
-				</thead>
-				<tbody>
-					{#each lista.filter((j) => j.status === 'pending') as j (j.id)}
-						<tr>
-							<td>{j.colaboradorNome}</td>
-							<td>{fmt(j.data)}</td>
-							<td>{j.motivo}</td>
-							<td>
-								{#if j.anexoUrl}
-									<button class="link-button" type="button" onclick={() => abrirAnexo(j.anexoUrl)}>
-										{j.anexoUrl.startsWith('data:') ? '🖼️' : 'ver'}
-									</button>
-								{:else}
-									—
-								{/if}
-							</td>
-							<td class="actions">
-								<button class="btn-approve" type="button" onclick={() => aprovar(j.id)}
-									>✓ Aprovar</button
-								>
-								<button class="btn-reject" type="button" onclick={() => rejeitar(j.id)}
-									>✗ Rejeitar</button
-								>
-							</td>
-						</tr>
+		<form class="form" onsubmit={criar}>
+			<label class="field">
+				<span>Colaborador</span>
+				<select bind:value={form.colaboradorId} required>
+					<option value="">Selecione…</option>
+					{#each colaboradores as c (c.id)}
+						<option value={c.id}>{c.nome}</option>
 					{/each}
-				</tbody>
-			</table>
+				</select>
+			</label>
+			<label class="field">
+				<span>Data da falta</span>
+				<input type="date" bind:value={form.data} required />
+			</label>
+			<label class="field">
+				<span>Motivo</span>
+				<input bind:value={form.motivo} required />
+			</label>
+			<label class="field">
+				<span>URL do anexo (opcional)</span>
+				<input bind:value={form.anexoUrl} />
+			</label>
+			<Button type="submit" variant="primary">Cadastrar</Button>
+		</form>
+	</Card>
+
+	<div class="section-label">Cadastradas ({lista.length})</div>
+
+	{#if lista.length === 0}
+		<Card>
+			<p class="muted">Nenhuma justificativa cadastrada.</p>
+		</Card>
+	{:else}
+		<div class="list">
+			{#each lista as j (j.id)}
+				{@const isOpen = openId === j.id}
+				<ApprovalCard
+					nome={j.colaboradorNome}
+					titulo="Justificativa de falta"
+					dataLabel={fmtCurta(j.data)}
+					expanded={isOpen}
+					onToggle={() => (openId = isOpen ? null : j.id)}
+				>
+					{#snippet details()}
+						<div class="row">
+							<span class="row__label">Data</span>
+							<span class="row__val">{fmtLonga(j.data)}</span>
+						</div>
+						<div class="row column">
+							<span class="row__label">Motivo</span>
+							<p class="row__motivo">{j.motivo}</p>
+						</div>
+						{#if j.anexoUrl}
+							<div class="row">
+								<span class="row__label">Anexo</span>
+								<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+								<a class="row__link" href={j.anexoUrl} target="_blank" rel="noopener">Ver anexo</a>
+							</div>
+						{/if}
+					{/snippet}
+					{#snippet actions()}
+						<Button variant="danger" onclick={() => remover(j.id)}>Remover</Button>
+					{/snippet}
+				</ApprovalCard>
+			{/each}
 		</div>
 	{/if}
-
-	<div class="card">
-		<h2>Justificativas Cadastradas</h2>
-		{#if lista.filter((j) => j.status === 'approved').length === 0}
-			<p class="muted">Nenhuma justificativa cadastrada.</p>
-		{:else}
-			<table>
-				<thead>
-					<tr><th>Colaborador</th><th>Data</th><th>Motivo</th><th>Anexo</th><th></th></tr>
-				</thead>
-				<tbody>
-					{#each lista.filter((j) => j.status === 'approved') as j (j.id)}
-						<tr>
-							<td>{j.colaboradorNome}</td>
-							<td>{fmt(j.data)}</td>
-							<td>{j.motivo}</td>
-							<td>
-								{#if j.anexoUrl}
-									<button class="link-button" type="button" onclick={() => abrirAnexo(j.anexoUrl)}>
-										{j.anexoUrl.startsWith('data:') ? '🖼️ Foto' : 'ver'}
-									</button>
-								{:else}
-									—
-								{/if}
-							</td>
-							<td
-								><button class="btn-del" type="button" onclick={() => remover(j.id)}>🗑️</button></td
-							>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		{/if}
-	</div>
 </section>
 
 {#if previewUrl}
@@ -291,248 +213,118 @@
 
 <style>
 	.page {
-		padding: 2rem;
-		max-width: 1000px;
+		max-width: 720px;
 		margin: 0 auto;
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
 	}
 
 	h1 {
-		margin: 0 0 1.5rem;
-		font-size: 1.875rem;
-		color: #1e293b;
+		margin: 0;
+		font-size: 1.375rem;
+		font-weight: 700;
+		color: var(--color-text);
+		letter-spacing: -0.02em;
 	}
 
-	.card {
-		background: #fff;
-		border: 1px solid #e2e8f0;
-		border-radius: 0.75rem;
-		padding: 1.5rem;
-		margin-bottom: 1.5rem;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	h2 {
+		margin: 0 0 1rem;
+		font-size: 0.9375rem;
+		font-weight: 700;
+		color: var(--color-text);
 	}
 
-	.card h2 {
-		margin: 0 0 1.5rem;
-		font-size: 1.25rem;
-		color: #1e293b;
+	.form {
+		display: flex;
+		flex-direction: column;
+		gap: 0.875rem;
 	}
 
-	.form label {
-		display: block;
-		margin-bottom: 1rem;
-		font-size: 0.875rem;
-		font-weight: 500;
-		color: #475569;
-	}
-
-	.form label small {
-		display: block;
-		margin-top: 0.25rem;
-		font-size: 0.75rem;
-		font-weight: normal;
-	}
-
-	.text-success {
-		color: #16a34a;
-	}
-
-	input,
-	select,
-	textarea {
-		display: block;
-		width: 100%;
-		margin-top: 0.5rem;
-		padding: 0.625rem 0.75rem;
-		border: 1.5px solid #e2e8f0;
-		border-radius: 0.5rem;
-		font-size: 0.9rem;
-		font-family: inherit;
-		transition: border-color 0.2s;
-	}
-
-	input:focus,
-	select:focus,
-	textarea:focus {
-		outline: none;
-		border-color: #3b82f6;
-		box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-	}
-
-	input:disabled,
-	select:disabled,
-	textarea:disabled {
-		background: #f8fafc;
-		color: #94a3b8;
-		cursor: not-allowed;
-	}
-
-	textarea {
-		resize: vertical;
-		min-height: 100px;
-	}
-
-	.btn {
-		padding: 0.75rem 1.5rem;
-		background: #3b82f6;
-		color: #fff;
-		border: none;
-		border-radius: 0.5rem;
-		font-weight: 500;
-		font-size: 0.9rem;
-		cursor: pointer;
-		transition: background 0.2s;
-	}
-
-	.btn:hover:not(:disabled) {
-		background: #2563eb;
-	}
-
-	.btn:disabled {
-		background: #cbd5e1;
-		cursor: not-allowed;
-	}
-
-	.btn-approve {
-		background: #16a34a;
-		color: #fff;
-		border: none;
-		border-radius: 0.375rem;
-		padding: 0.375rem 0.75rem;
-		font-size: 0.75rem;
-		cursor: pointer;
-		transition: background 0.2s;
-		margin-right: 0.5rem;
-	}
-
-	.btn-approve:hover {
-		background: #15803d;
-	}
-
-	.btn-reject {
-		background: #dc2626;
-		color: #fff;
-		border: none;
-		border-radius: 0.375rem;
-		padding: 0.375rem 0.75rem;
-		font-size: 0.75rem;
-		cursor: pointer;
-		transition: background 0.2s;
-	}
-
-	.btn-reject:hover {
-		background: #b91c1c;
-	}
-
-	.btn-del {
-		background: none;
-		border: none;
-		cursor: pointer;
-		font-size: 1rem;
-		padding: 0.25rem 0.5rem;
-		transition: opacity 0.2s;
-	}
-
-	.btn-del:hover {
-		opacity: 0.7;
-	}
-
-	table {
-		width: 100%;
-		border-collapse: collapse;
-		font-size: 0.9rem;
-	}
-
-	th {
-		text-align: left;
-		padding: 0.75rem 0.5rem;
-		font-size: 0.75rem;
-		text-transform: uppercase;
-		color: #64748b;
-		border-bottom: 1px solid #e2e8f0;
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+		font-size: 0.8125rem;
 		font-weight: 600;
+		color: #374151;
 	}
 
-	td {
-		padding: 1rem 0.5rem;
-		border-bottom: 1px solid #e2e8f0;
+	.field input,
+	.field select {
+		padding: 0.625rem 0.875rem;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		font-size: 0.9375rem;
+		color: var(--color-text);
+		font-family: inherit;
 	}
 
-	td.actions {
-		white-space: nowrap;
+	.section-label {
+		font-size: 0.8125rem;
+		font-weight: 700;
+		color: var(--color-text-subtle);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
 	}
 
-	.muted {
-		color: #64748b;
-		font-size: 0.9rem;
+	.list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.625rem;
 	}
 
-	.error {
-		background: #fef2f2;
-		color: #991b1b;
-		border: 1px solid #fecaca;
-		padding: 0.875rem 1rem;
-		border-radius: 0.5rem;
-		margin-bottom: 1.5rem;
-		font-size: 0.9rem;
-	}
-
-	.link-button {
-		background: none;
-		border: none;
-		padding: 0;
-		color: #3b82f6;
-		cursor: pointer;
-		font: inherit;
-	}
-
-	.link-button:hover {
-		text-decoration: underline;
-	}
-
-	.preview-backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(15, 23, 42, 0.75);
-		display: grid;
-		place-items: center;
-		padding: 1rem;
-		z-index: 1000;
-	}
-
-	.preview-modal {
-		width: min(96vw, 1000px);
-		max-height: 92vh;
-		background: #0f172a;
-		border-radius: 0.75rem;
-		padding: 0.75rem;
-		display: grid;
+	.row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
 		gap: 0.5rem;
 	}
 
-	.preview-modal img {
+	.row.column {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.row__label {
+		font-size: 0.8125rem;
+		color: var(--color-text-subtle);
+		font-weight: 500;
+	}
+
+	.row__val {
+		font-size: 0.875rem;
+		color: var(--color-text);
+		font-weight: 500;
+		text-transform: capitalize;
+	}
+
+	.row__motivo {
+		margin: 0;
+		color: #334155;
+		font-size: 0.9rem;
+		line-height: 1.5;
+		background: var(--color-surface-muted);
+		padding: 0.75rem;
+		border-radius: var(--radius-sm);
 		width: 100%;
-		max-height: calc(92vh - 3rem);
-		object-fit: contain;
-		border-radius: 0.5rem;
-		background: #020617;
 	}
 
-	.preview-close {
-		justify-self: end;
-		border: none;
-		border-radius: 0.5rem;
-		padding: 0.4rem 0.7rem;
-		background: #1d4ed8;
-		color: #fff;
-		cursor: pointer;
-	}
-
-	a {
-		color: #3b82f6;
+	.row__link {
+		color: var(--color-primary);
+		font-size: 0.875rem;
 		text-decoration: none;
 	}
 
-	a:hover {
-		text-decoration: underline;
+	.muted {
+		color: var(--color-text-muted);
+		margin: 0;
+	}
+
+	.error {
+		background: var(--color-danger-bg);
+		color: var(--color-danger);
+		padding: 0.75rem 1rem;
+		border-radius: var(--radius-sm);
 	}
 </style>
