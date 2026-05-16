@@ -36,8 +36,9 @@ export function formatTime(date: Date | string): string {
 
 /** "08h 32min" */
 export function formatHoursMinutes(totalMinutes: number): string {
-	const h = Math.floor(Math.abs(totalMinutes) / 60);
-	const m = Math.abs(totalMinutes) % 60;
+	const totalAbs = Math.round(Math.abs(totalMinutes));
+	const h = Math.floor(totalAbs / 60);
+	const m = totalAbs % 60;
 	const sign = totalMinutes < 0 ? '-' : '';
 	return `${sign}${h}h ${String(m).padStart(2, '0')}min`;
 }

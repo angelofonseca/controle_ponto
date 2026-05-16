@@ -7,6 +7,7 @@
 	import { relatorioService, type ConsolidadoRelatorio } from '@/services/relatorio.service';
 	import { colaboradorService } from '@/services/colaborador.service';
 	import type { Colaborador } from '@/types/colaborador';
+	import { formatHoursMinutes } from '@/utils/date';
 	import EspelhoMensal from '@/components/timesheet/EspelhoMensal.svelte';
 	import Avatar from '@/components/ui/Avatar.svelte';
 	import Button from '@/components/ui/Button.svelte';
@@ -55,7 +56,9 @@
 		);
 	});
 
-	const maxHoras = $derived(conResult ? Math.max(1, ...conResult.linhas.map((l) => l.horas)) : 1);
+	const maxHoras = $derived(
+		conResult ? Math.max(1, ...conResult.linhas.flatMap((l) => [l.horas, l.horasEsperadas])) : 1
+	);
 
 	async function carregarConsolidado(e?: Event) {
 		e?.preventDefault();
@@ -190,9 +193,21 @@
 
 		{#if conResult}
 			<div class="stats">
-				<StatCard tone="info" label="Total de horas" value="{Math.floor(totais.horas)}h" />
-				<StatCard tone="success" label="Horas extras" value="+{totais.extras}h" />
-				<StatCard tone="danger" label="Déficit acum." value="-{totais.deficit}h" />
+				<StatCard
+					tone="info"
+					label="Total de horas"
+					value={formatHoursMinutes(totais.horas * 60)}
+				/>
+				<StatCard
+					tone="success"
+					label="Horas extras"
+					value="+{formatHoursMinutes(totais.extras * 60)}"
+				/>
+				<StatCard
+					tone="danger"
+					label="Déficit acum."
+					value="-{formatHoursMinutes(totais.deficit * 60)}"
+				/>
 				<StatCard tone="warning" label="Justificadas" value={totais.faltas} />
 			</div>
 
@@ -203,13 +218,20 @@
 						<div class="bar-row">
 							<div class="bar__name">{l.colaboradorNome.split(' ')[0]}</div>
 							<div class="bar__track">
+								{#if l.horasEsperadas > 0}
+									<div
+										class="bar__expected"
+										style="width: {(l.horasEsperadas / maxHoras) * 100}%"
+										title="Esperado: {formatHoursMinutes(l.horasEsperadas * 60)}"
+									></div>
+								{/if}
 								<div
 									class="bar__fill"
 									style="width: {(l.horas / maxHoras) * 100}%; background: {avatarColors[
 										i % avatarColors.length
 									]};"
 								>
-									<span class="bar__value">{l.horas}h</span>
+									<span class="bar__value">{formatHoursMinutes(l.horas * 60)}</span>
 								</div>
 							</div>
 						</div>
@@ -259,17 +281,17 @@
 										</div>
 									</td>
 									<td class="right">{l.diasTrabalhados}</td>
-									<td class="right num">{l.horas}h</td>
+									<td class="right num">{formatHoursMinutes(l.horas * 60)}</td>
 									<td class="right">
 										{#if l.extras > 0}
-											<span class="pos">+{l.extras}h</span>
+											<span class="pos">+{formatHoursMinutes(l.extras * 60)}</span>
 										{:else}
 											<span class="dash">—</span>
 										{/if}
 									</td>
 									<td class="right">
 										{#if l.deficit > 0}
-											<span class="neg">-{l.deficit}h</span>
+											<span class="neg">-{formatHoursMinutes(l.deficit * 60)}</span>
 										{:else}
 											<span class="dash">—</span>
 										{/if}
@@ -444,6 +466,16 @@
 		background: var(--color-border-soft);
 		border-radius: var(--radius-pill);
 		overflow: hidden;
+		position: relative;
+	}
+
+	.bar__expected {
+		position: absolute;
+		left: 0;
+		top: 0;
+		height: 100%;
+		background: #d1d5db;
+		border-radius: var(--radius-pill);
 	}
 
 	.bar__fill {
@@ -455,6 +487,8 @@
 		align-items: center;
 		justify-content: flex-end;
 		padding-right: 8px;
+		position: relative;
+		z-index: 1;
 	}
 
 	.bar__value {

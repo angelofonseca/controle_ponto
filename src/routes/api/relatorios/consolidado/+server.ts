@@ -1,6 +1,7 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { prisma } from '@/lib/server/db';
 import { buildDailySummaries } from '@/lib/server/timesheet';
+import { calcularHorasEsperadasMes, toJornadaDTO } from '@/lib/server/jornada';
 import { requireAdmin, jsonError, jsonOk } from '../../_lib/auth-helpers';
 
 export const GET: RequestHandler = async ({ request, url }) => {
@@ -22,7 +23,8 @@ export const GET: RequestHandler = async ({ request, url }) => {
 
 	const colaboradores = await prisma.user.findMany({
 		where: { empresaId: admin.empresaId, role: 'colaborador' },
-		orderBy: { name: 'asc' }
+		orderBy: { name: 'asc' },
+		include: { jornada: true }
 	});
 
 	const punches = await prisma.punch.findMany({
@@ -56,12 +58,16 @@ export const GET: RequestHandler = async ({ request, url }) => {
 		const deficit = dias.reduce((acc, d) => acc + d.deficit, 0);
 		const ferias = feriasMes.filter((f) => f.colaboradorId === c.id).length;
 		const faltasJustificadas = justMes.filter((j) => j.colaboradorId === c.id).length;
+		const horasEsperadas = c.jornada
+			? calcularHorasEsperadasMes(toJornadaDTO(c.jornada), ano, mesNum)
+			: 0;
 
 		return {
 			colaboradorId: c.id,
 			colaboradorNome: c.name,
 			diasTrabalhados: dias.filter((d) => d.totalHours > 0).length,
 			horas: Number(horas.toFixed(2)),
+			horasEsperadas: Number(horasEsperadas.toFixed(2)),
 			extras: Number(extras.toFixed(2)),
 			deficit: Number(deficit.toFixed(2)),
 			periodosFerias: ferias,

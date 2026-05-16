@@ -19,6 +19,7 @@ export interface ConsolidadoLinha {
 	colaboradorNome: string;
 	diasTrabalhados: number;
 	horas: number;
+	horasEsperadas: number;
 	extras: number;
 	deficit: number;
 	periodosFerias: number;
