@@ -151,7 +151,7 @@
 
 <style>
 	.page {
-		max-width: 720px;
+		max-width: 1200px;
 		margin: 0 auto;
 		display: flex;
 		flex-direction: column;

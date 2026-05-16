@@ -536,7 +536,7 @@
 	/* ── Página ─────────────────────────────────────────────── */
 	.jornadas {
 		padding: 2rem;
-		max-width: 1100px;
+		max-width: 1200px;
 	}
 
 	.jornadas__header {
