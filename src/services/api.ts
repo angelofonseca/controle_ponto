@@ -9,7 +9,7 @@
  *  - Tipagem forte nos retornos
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api';
+const BASE_URL = '/api';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
