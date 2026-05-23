@@ -153,16 +153,6 @@
 		</label>
 
 		<label>
-			URL do anexo (opcional)
-			<input
-				type="url"
-				bind:value={form.anexoUrl}
-				disabled={loading}
-				placeholder="https://exemplo.com/anexo"
-			/>
-		</label>
-
-		<label>
 			Anexo (PNG, JPG ou PDF, opcional)
 			<input
 				type="file"
