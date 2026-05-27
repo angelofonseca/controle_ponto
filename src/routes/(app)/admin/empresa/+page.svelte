@@ -7,6 +7,7 @@
 	import { empresaService, type Empresa } from '@/services/empresa.service';
 	import { user as userStore } from '@/store/auth.store';
 	import { get } from 'svelte/store';
+	import Button from '@/components/ui/Button.svelte';
 
 	let empresa = $state<Empresa | null>(null);
 	let salvando = $state(false);
@@ -63,9 +64,9 @@
 				<label>Abertura<input type="time" bind:value={form.horaAbertura} /></label>
 				<label>Fechamento<input type="time" bind:value={form.horaFechamento} /></label>
 			</div>
-			<button class="btn" disabled={salvando} onclick={salvar}>
+			<Button disabled={salvando} onclick={salvar}>
 				{salvando ? 'Salvando…' : 'Salvar'}
-			</button>
+			</Button>
 		</div>
 	</div>
 </section>

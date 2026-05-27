@@ -170,7 +170,7 @@
 	<header class="admin-page__header">
 		<h1>Justificativas de Falta</h1>
 		<Button variant="primary" onclick={() => (formularioAberto = !formularioAberto)}>
-			{formularioAberto ? '✕ Cancelar' : '+ Nova justificativa'}
+			{formularioAberto ? 'Cancelar' : 'Nova justificativa'}
 		</Button>
 	</header>
 

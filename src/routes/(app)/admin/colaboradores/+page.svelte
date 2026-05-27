@@ -139,9 +139,7 @@
 					: ''}
 			</p>
 		</div>
-		<button class="btn btn--primario" onclick={abrirCriacao}>
-			<span aria-hidden="true">+</span> Novo colaborador
-		</button>
+		<Button onclick={abrirCriacao}>Novo colaborador</Button>
 	</header>
 
 	<!-- Barra de filtros -->

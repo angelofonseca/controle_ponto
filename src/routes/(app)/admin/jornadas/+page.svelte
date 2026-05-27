@@ -273,7 +273,7 @@
 <section class="admin-page">
 	<header class="admin-page__header">
 		<h1>Jornadas de Trabalho</h1>
-		<Button variant="primary" size="sm" onclick={openCreate}>Nova Jornada</Button>
+		<Button onclick={openCreate}>Nova Jornada</Button>
 	</header>
 
 	{#if errorMsg}

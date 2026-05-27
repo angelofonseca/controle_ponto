@@ -78,7 +78,7 @@
 	<header class="admin-page__header">
 		<h1>Férias</h1>
 		<Button variant="primary" onclick={() => (formularioAberto = !formularioAberto)}>
-			{formularioAberto ? '✕ Cancelar' : '+ Novo período'}
+			{formularioAberto ? 'Cancelar' : 'Novo período'}
 		</Button>
 	</header>
 
