@@ -1,6 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { prisma } from '@/lib/server/db';
-import { buildDailySummaries } from '@/lib/server/timesheet';
+import { buildDailySummaries, dateKey } from '@/lib/server/timesheet';
 import { requireUser, jsonError, jsonOk } from '../../_lib/auth-helpers';
 
 export const GET: RequestHandler = async ({ request, url }) => {
@@ -25,14 +25,17 @@ export const GET: RequestHandler = async ({ request, url }) => {
 		return jsonError('Datas inválidas', 400);
 	}
 
-	const punches = await prisma.punch.findMany({
-		where: {
-			userId: user.id,
-			timestamp: { gte: start, lte: end }
-		},
-		orderBy: { timestamp: 'asc' },
-		include: { anulacao: true }
-	});
+	const [punches, justificativas] = await Promise.all([
+		prisma.punch.findMany({
+			where: { userId: user.id, timestamp: { gte: start, lte: end } },
+			orderBy: { timestamp: 'asc' },
+			include: { anulacao: true }
+		}),
+		prisma.justificativa.findMany({
+			where: { colaboradorId: user.id, status: 'approved', data: { gte: start, lte: end } }
+		})
+	]);
 
-	return jsonOk(buildDailySummaries(punches));
+	const datasAbonadas = new Set(justificativas.map((j) => dateKey(j.data)));
+	return jsonOk(buildDailySummaries(punches, datasAbonadas));
 };

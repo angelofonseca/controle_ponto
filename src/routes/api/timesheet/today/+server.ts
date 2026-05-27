@@ -17,14 +17,17 @@ export const GET: RequestHandler = async ({ request }) => {
 	const end = new Date(now);
 	end.setUTCHours(23, 59, 59, 999);
 
-	const punches = await prisma.punch.findMany({
-		where: {
-			userId: user.id,
-			timestamp: { gte: start, lte: end }
-		},
-		orderBy: { timestamp: 'asc' },
-		include: { anulacao: true }
-	});
+	const [punches, justificativas] = await Promise.all([
+		prisma.punch.findMany({
+			where: { userId: user.id, timestamp: { gte: start, lte: end } },
+			orderBy: { timestamp: 'asc' },
+			include: { anulacao: true }
+		}),
+		prisma.justificativa.findMany({
+			where: { colaboradorId: user.id, status: 'approved', data: { gte: start, lte: end } }
+		})
+	]);
 
-	return jsonOk(buildSummary(dateKey(now), punches));
+	const abonado = justificativas.length > 0;
+	return jsonOk(buildSummary(dateKey(now), punches, abonado));
 };

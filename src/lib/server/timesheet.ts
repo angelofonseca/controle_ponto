@@ -36,6 +36,7 @@ export interface DailySummaryDTO {
 	totalHours: number;
 	overtime: number;
 	deficit: number;
+	abonado: boolean;
 }
 
 export type PunchWithAnulacao = Punch & { anulacao?: PunchAnulacao | null };
@@ -70,8 +71,12 @@ export function dateKey(date: Date): string {
  * Regra: totalHours = (saida_almoco - entrada) + (saida - retorno_almoco) em horas decimais.
  * Batidas anuladas são exibidas no DTO mas ignoradas no cálculo.
  * Se faltar qualquer um dos 4 tipos válidos, totalHours = 0. Jornada base: 8h/dia.
+ * Dias com justificativa aprovada (abonado) têm deficit zerado.
  */
-export function buildDailySummaries(punches: PunchWithAnulacao[]): DailySummaryDTO[] {
+export function buildDailySummaries(
+	punches: PunchWithAnulacao[],
+	datasAbonadas: Set<string> = new Set()
+): DailySummaryDTO[] {
 	const byDay = new Map<string, PunchWithAnulacao[]>();
 
 	for (const p of punches) {
@@ -84,14 +89,18 @@ export function buildDailySummaries(punches: PunchWithAnulacao[]): DailySummaryD
 	const summaries: DailySummaryDTO[] = [];
 	for (const [date, dayPunches] of byDay.entries()) {
 		dayPunches.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-		summaries.push(buildSummary(date, dayPunches));
+		summaries.push(buildSummary(date, dayPunches, datasAbonadas.has(date)));
 	}
 
 	summaries.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 	return summaries;
 }
 
-export function buildSummary(date: string, punches: PunchWithAnulacao[]): DailySummaryDTO {
+export function buildSummary(
+	date: string,
+	punches: PunchWithAnulacao[],
+	abonado = false
+): DailySummaryDTO {
 	const validas = punches.filter((p) => !p.anulacao);
 	const byType = new Map(validas.map((p) => [p.type, p]));
 	const entrada = byType.get('entrada');
@@ -108,13 +117,18 @@ export function buildSummary(date: string, punches: PunchWithAnulacao[]): DailyS
 
 	const JORNADA_BASE = 8;
 	const overtime = Math.max(0, Number((totalHours - JORNADA_BASE).toFixed(2)));
-	const deficit = totalHours > 0 ? Math.max(0, Number((JORNADA_BASE - totalHours).toFixed(2))) : 0;
+	const deficit = abonado
+		? 0
+		: totalHours > 0
+			? Math.max(0, Number((JORNADA_BASE - totalHours).toFixed(2)))
+			: 0;
 
 	return {
 		date,
 		punches: punches.map(toPunchDTO),
 		totalHours,
 		overtime,
-		deficit
+		deficit,
+		abonado
 	};
 }

@@ -1,6 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { prisma } from '@/lib/server/db';
-import { buildDailySummaries } from '@/lib/server/timesheet';
+import { buildDailySummaries, dateKey } from '@/lib/server/timesheet';
 import { requireAdmin, jsonError, jsonOk } from '../../_lib/auth-helpers';
 
 export const GET: RequestHandler = async ({ request, url }) => {
@@ -30,13 +30,24 @@ export const GET: RequestHandler = async ({ request, url }) => {
 		return jsonError('Datas inválidas', 400);
 	}
 
-	const punches = await prisma.punch.findMany({
-		where: { userId: colaboradorId, timestamp: { gte: start, lte: end } },
-		orderBy: { timestamp: 'asc' },
-		include: { anulacao: true }
-	});
+	const [punches, justificativas] = await Promise.all([
+		prisma.punch.findMany({
+			where: { userId: colaboradorId, timestamp: { gte: start, lte: end } },
+			orderBy: { timestamp: 'asc' },
+			include: { anulacao: true }
+		}),
+		prisma.justificativa.findMany({
+			where: {
+				colaboradorId,
+				empresaId: admin.empresaId,
+				status: 'approved',
+				data: { gte: start, lte: end }
+			}
+		})
+	]);
 
-	const dias = buildDailySummaries(punches);
+	const datasAbonadas = new Set(justificativas.map((j) => dateKey(j.data)));
+	const dias = buildDailySummaries(punches, datasAbonadas);
 	const totalHoras = dias.reduce((acc, d) => acc + d.totalHours, 0);
 	const totalExtras = dias.reduce((acc, d) => acc + d.overtime, 0);
 	const totalDeficit = dias.reduce((acc, d) => acc + d.deficit, 0);

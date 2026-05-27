@@ -1,6 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { prisma } from '@/lib/server/db';
-import { buildDailySummaries } from '@/lib/server/timesheet';
+import { buildDailySummaries, dateKey } from '@/lib/server/timesheet';
 import { calcularHorasEsperadasMes, toJornadaDTO } from '@/lib/server/jornada';
 import { requireAdmin, jsonError, jsonOk } from '../../_lib/auth-helpers';
 
@@ -52,7 +52,12 @@ export const GET: RequestHandler = async ({ request, url }) => {
 	}
 
 	const linhas = colaboradores.map((c) => {
-		const dias = buildDailySummaries(byUser.get(c.id) ?? []);
+		const datasAbonadas = new Set(
+			justMes
+				.filter((j) => j.colaboradorId === c.id && j.status === 'approved')
+				.map((j) => dateKey(j.data))
+		);
+		const dias = buildDailySummaries(byUser.get(c.id) ?? [], datasAbonadas);
 		const horas = dias.reduce((acc, d) => acc + d.totalHours, 0);
 		const extras = dias.reduce((acc, d) => acc + d.overtime, 0);
 		const deficit = dias.reduce((acc, d) => acc + d.deficit, 0);
